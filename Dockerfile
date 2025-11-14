@@ -8,6 +8,9 @@ WORKDIR /app
 # RUN pip install -r requirements-web.txt
 
 COPY . .
+COPY web.env .
+
+RUN uv sync --locked --no-dev
 
 EXPOSE 8501
 
