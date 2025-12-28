@@ -7,10 +7,12 @@ from multiprocessing import Queue
 import pandas as pd
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
-import web.constants as const
 from grader.checks.abstract_check import ScoredCheckResult, NonScoredCheckResult, CheckResult
 from grader.grader import Grader, GraderError
+from grader.utils.virtual_environment import VirtualEnvironmentError
 from grader.utils.logger import setup_logger
+
+import web.constants as const
 
 
 def run_grader(conn: Queue, run_id: str) -> None:
@@ -34,11 +36,15 @@ def run_grader(conn: Queue, run_id: str) -> None:
 
     try:
         grader = Grader(run_id, project_root, config_path, log)
-    except GraderError:
+    except (GraderError, VirtualEnvironmentError):
         conn.put((1, []))
         return
 
-    results = grader.grade()
+    try:
+        results = grader.grade()
+    except (GraderError, VirtualEnvironmentError):
+        conn.put((1, []))
+        return
 
     conn.put((0, results))
 
@@ -50,7 +56,17 @@ def convert_results(check_results: list[CheckResult]) -> pd.DataFrame:
     :param check_results: The list of CheckResult objects to convert.
     :return: A pandas DataFrame representing the check results.
     """
-    return pd.DataFrame([__convert_result(result) for result in check_results])
+    results = pd.DataFrame([__convert_result(result) for result in check_results])
+
+    results = pd.concat(
+        [
+            results,
+            pd.DataFrame(
+                [{"name": "Total", "score": results["score"].sum(), "max_score": results["max_score"].sum()}]
+            ),
+        ],
+    ).reset_index(drop=True)
+    return results
 
 
 def __convert_result(check_result: CheckResult) -> dict:
