@@ -2,7 +2,15 @@ from multiprocessing import Queue, Process
 
 import streamlit as st
 
-from web.utils import run_grader, convert_results, generate_run_id, handle_upload, collect_log, remove_project
+from web.utils import (
+    run_grader,
+    convert_results,
+    generate_run_id,
+    handle_upload,
+    collect_log,
+    remove_project,
+    get_information_from_checks,
+)
 
 
 def run_app() -> None:
@@ -38,5 +46,14 @@ def run_app() -> None:
                 st.dataframe(convert_results(results))
             else:
                 st.error(f"An error occurred during grading. Run id: {run_id}")
+
+            with st.expander("More information..."):
+                check_to_info = get_information_from_checks(results)
+
+                for check in check_to_info:
+                    info = check_to_info[check]
+                    if info != "":
+                        with st.expander(check):
+                            st.write(info)
     else:
         st.info("Please upload a project to get started.")

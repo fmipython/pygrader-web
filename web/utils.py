@@ -71,17 +71,14 @@ def convert_results(check_results: list[CheckResult]) -> pd.DataFrame:
 
 def __convert_result(check_result: CheckResult) -> dict:
     match check_result:
-        case ScoredCheckResult(name, score, max_score):
+        case ScoredCheckResult(name, score, _, _, max_score):
             return {
                 "name": name,
                 "score": score,
                 "max_score": max_score,
             }
-        case NonScoredCheckResult(name, result):
-            return {
-                "name": name,
-                "result": result,
-            }
+        case NonScoredCheckResult(name, result, _, _):
+            return {"name": name, "result": result}
         case _:
             raise ValueError("Unknown CheckResult type")
 
@@ -140,3 +137,7 @@ def remove_project(run_id: str) -> None:
 
     if os.path.exists(project_dir):
         shutil.rmtree(project_dir)
+
+
+def get_information_from_checks(results: list[CheckResult]) -> dict[str, str]:
+    return {result.name: result.info for result in results}
