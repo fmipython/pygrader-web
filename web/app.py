@@ -51,9 +51,11 @@ def run_app() -> None:
                 check_to_info = get_information_from_checks(results)
 
                 for check in check_to_info:
-                    info = check_to_info[check]
+                    info, error = check_to_info[check]
                     if info != "":
                         with st.expander(check):
                             st.write(info)
+
+            # Add expander for errors
     else:
         st.info("Please upload a project to get started.")

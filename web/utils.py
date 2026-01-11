@@ -43,6 +43,7 @@ def run_grader(conn: Queue, run_id: str) -> None:
     try:
         results = grader.grade()
     except (GraderError, VirtualEnvironmentError):
+        # TODO - Add exception message
         conn.put((1, []))
         return
 
@@ -139,5 +140,5 @@ def remove_project(run_id: str) -> None:
         shutil.rmtree(project_dir)
 
 
-def get_information_from_checks(results: list[CheckResult]) -> dict[str, str]:
-    return {result.name: result.info for result in results}
+def get_information_from_checks(results: list[CheckResult]) -> dict[str, tuple[str, str]]:
+    return {result.name: (result.info, result.error) for result in results}
