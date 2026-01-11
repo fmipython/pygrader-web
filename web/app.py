@@ -46,6 +46,7 @@ def run_app() -> None:
                 st.dataframe(convert_results(results))
             else:
                 st.error(f"An error occurred during grading. Run id: {run_id}")
+                st.error(f"Details: {'\n'.join(results)}")
 
             with st.expander("More information..."):
                 check_to_info = get_information_from_checks(results)
@@ -53,8 +54,11 @@ def run_app() -> None:
                 for check in check_to_info:
                     info, error = check_to_info[check]
                     if info != "":
-                        with st.expander(check):
+                        with st.expander(f"{check}: info", icon=":material/info:"):
                             st.write(info)
+                    if error != "":
+                        with st.expander(f"{check}: error", icon=":material/warning:"):
+                            st.write(error)
 
             # Add expander for errors
     else:

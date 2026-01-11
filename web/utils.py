@@ -42,9 +42,9 @@ def run_grader(conn: Queue, run_id: str) -> None:
 
     try:
         results = grader.grade()
-    except (GraderError, VirtualEnvironmentError):
+    except (GraderError, VirtualEnvironmentError) as exc:
         # TODO - Add exception message
-        conn.put((1, []))
+        conn.put((1, [str(exc)]))
         return
 
     conn.put((0, results))
