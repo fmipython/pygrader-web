@@ -42,7 +42,7 @@ def run_app() -> None:
             remove_project(run_id)
 
             if code == 0:
-                st.success("Project graded successfully!")
+                st.success(f"Project graded successfully! Run id: {run_id}")
                 st.dataframe(convert_results(results))
             else:
                 st.error(f"An error occurred during grading. Run id: {run_id}")
