@@ -1,5 +1,6 @@
 import datetime
 import os
+from pathlib import Path
 import shutil
 import zipfile
 from multiprocessing import Queue
@@ -11,11 +12,12 @@ from grader.checks.abstract_check import ScoredCheckResult, NonScoredCheckResult
 from grader.grader import Grader, GraderError
 from grader.utils.virtual_environment import VirtualEnvironmentError
 from grader.utils.logger import setup_logger
+import grader.utils.constants as grader_const
 
 import web.constants as const
 
 
-def run_grader(conn: Queue, run_id: str) -> None:
+def run_grader(conn: Queue, run_id: str, project_root: str) -> None:
     """
     Run the grading process and send results back through the connection.
     :param conn: The multiprocessing queue to send results through.
@@ -23,13 +25,10 @@ def run_grader(conn: Queue, run_id: str) -> None:
     """
     log = setup_logger(run_id)
 
-    root_dir = os.getenv("ROOT_DIR", "/tmp/pygrader")
-    project_root = os.path.join(root_dir, const.PROJECT_DIR.format(run_id=run_id))
-
     os.makedirs(project_root, exist_ok=True)
 
     if "CONFIG_PATH" not in os.environ:
-        conn.put((1, []))
+        conn.put((1, [], []))
         return
 
     config_path = os.getenv("CONFIG_PATH", "")
@@ -37,17 +36,17 @@ def run_grader(conn: Queue, run_id: str) -> None:
     try:
         grader = Grader(run_id, project_root, config_path, log)
     except (GraderError, VirtualEnvironmentError):
-        conn.put((1, []))
+        conn.put((1, [], []))
         return
 
     try:
         results = grader.grade()
     except (GraderError, VirtualEnvironmentError) as exc:
         # TODO - Add exception message
-        conn.put((1, [str(exc)]))
+        conn.put((1, [], [str(exc)]))
         return
 
-    conn.put((0, results))
+    conn.put((0, results, []))
 
 
 def convert_results(check_results: list[CheckResult]) -> pd.DataFrame:
@@ -93,7 +92,7 @@ def generate_run_id() -> str:
     return "run" + now.strftime("%y%m%d%H%M%S") + str(now.microsecond)[:3]
 
 
-def handle_upload(file_obj: UploadedFile, run_id: str) -> None:
+def handle_upload(file_obj: UploadedFile, run_id: str) -> str:
     """
     Handle the uploaded zip file by extracting its contents to a staging directory.
     :param file_obj: The uploaded zip file object.
@@ -112,7 +111,20 @@ def handle_upload(file_obj: UploadedFile, run_id: str) -> None:
     with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
         zip_ref.extractall(project_dir)
 
+    # If the unzipped folder contains only one subfolder (except MACOS subdirectories), use that as the project root
+    project_root_dir = Path(project_dir)
+    subdirs = [
+        directory
+        for directory in project_root_dir.iterdir()
+        if directory.is_dir() and directory.name not in grader_const.IGNORE_DIRS
+    ]
+
+    if len(subdirs) == 1:
+        project_dir = str(subdirs[0])
+
     os.remove(zip_file_path)
+
+    return project_dir
 
 
 def collect_log(run_id: str) -> None:

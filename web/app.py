@@ -29,13 +29,13 @@ def run_app() -> None:
         with st.spinner("Grading project..."):
             run_id = generate_run_id()
 
-            handle_upload(project, run_id)
+            project_root = handle_upload(project, run_id)
 
             queue = Queue()  # type: ignore
-            grader = Process(target=run_grader, args=(queue, run_id))
+            grader = Process(target=run_grader, args=(queue, run_id, project_root))
             grader.start()
             grader.join()
-            code, results = queue.get()
+            code, results, errors = queue.get()
             queue.close()
 
             collect_log(run_id)
@@ -46,19 +46,23 @@ def run_app() -> None:
                 st.dataframe(convert_results(results))
             else:
                 st.error(f"An error occurred during grading. Run id: {run_id}")
-                st.error(f"Details: {'\n'.join(results)}")
+                if len(results) > 0:
+                    st.error(f"Details: {'\n'.join(results)}")
 
-            with st.expander("More information..."):
-                check_to_info = get_information_from_checks(results)
+                if len(errors) > 0:
+                    st.error(f"Errors: {'\n'.join(errors)}")
 
-                for check in check_to_info:
-                    info, error = check_to_info[check]
-                    if info != "":
-                        with st.expander(f"{check}: info", icon=":material/info:"):
-                            st.write(info)
-                    if error != "":
-                        with st.expander(f"{check}: error", icon=":material/warning:"):
-                            st.write(error)
+            check_to_info = get_information_from_checks(results)
+            if len(check_to_info) > 0:
+                with st.expander("More information..."):
+                    for check in check_to_info:
+                        info, error = check_to_info[check]
+                        if info != "":
+                            with st.expander(f"{check}: info", icon=":material/info:"):
+                                st.write(info)
+                        if error != "":
+                            with st.expander(f"{check}: error", icon=":material/warning:"):
+                                st.write(error)
 
             # Add expander for errors
     else:
