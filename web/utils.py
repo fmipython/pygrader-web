@@ -104,25 +104,30 @@ def handle_upload(file_obj: UploadedFile, run_id: str) -> str:
         os.makedirs(root_dir)
 
     zip_file_path = os.path.join(root_dir, const.ARCHIVE_NAME.format(run_id=run_id))
-    with open(zip_file_path, "wb") as f:
-        f.write(file_obj.getbuffer())
 
-    project_dir = os.path.join(root_dir, const.PROJECT_DIR.format(run_id=run_id))
-    with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
-        zip_ref.extractall(project_dir)
+    try:
+        # Use read() instead of getbuffer() to avoid holding references
+        with open(zip_file_path, "wb") as f:
+            f.write(file_obj.read())
 
-    # If the unzipped folder contains only one subfolder (except MACOS subdirectories), use that as the project root
-    project_root_dir = Path(project_dir)
-    subdirs = [
-        directory
-        for directory in project_root_dir.iterdir()
-        if directory.is_dir() and directory.name not in grader_const.IGNORE_DIRS
-    ]
+        project_dir = os.path.join(root_dir, const.PROJECT_DIR.format(run_id=run_id))
+        with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
+            zip_ref.extractall(project_dir)
 
-    if len(subdirs) == 1:
-        project_dir = str(subdirs[0])
+        # If the unzipped folder contains only one subfolder (except MACOS subdirectories), use that as the project root
+        project_root_dir = Path(project_dir)
+        subdirs = [
+            directory
+            for directory in project_root_dir.iterdir()
+            if directory.is_dir() and directory.name not in grader_const.IGNORE_DIRS
+        ]
 
-    os.remove(zip_file_path)
+        if len(subdirs) == 1:
+            project_dir = str(subdirs[0])
+    finally:
+        # Always remove the temporary zip file
+        if os.path.exists(zip_file_path):
+            os.remove(zip_file_path)
 
     return project_dir
 
@@ -137,7 +142,9 @@ def collect_log(run_id: str) -> None:
     if not os.path.exists(logs_dir_path):
         os.makedirs(logs_dir_path)
 
-    shutil.copy2(f"{run_id}.log", logs_dir_path)
+    log_file = f"{run_id}.log"
+    if os.path.exists(log_file):
+        shutil.move(log_file, logs_dir_path)
 
 
 def remove_project(run_id: str) -> None:
