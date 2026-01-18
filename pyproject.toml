@@ -20,4 +20,5 @@ dev = [
 ]
 
 [tool.uv.sources]
-pygrader = { path = "../pygrader", editable = true }
+pygrader = { git = "https://github.com/fmipython/pygrader", rev = "v1.8.0" }
+
