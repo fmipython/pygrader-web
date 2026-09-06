@@ -1,18 +1,18 @@
 import datetime
 import os
-from pathlib import Path
 import shutil
 import zipfile
 from multiprocessing import Queue
+from pathlib import Path
 
-import pandas as pd
-from streamlit.runtime.uploaded_file_manager import UploadedFile
-
-from grader.checks.abstract_check import ScoredCheckResult, NonScoredCheckResult, CheckResult
-from grader.grader import Grader, GraderError
-from grader.utils.virtual_environment import VirtualEnvironmentError
-from grader.utils.logger import setup_logger
 import grader.utils.constants as grader_const
+import pandas as pd
+from grader.exceptions import GraderError
+from grader.grader import Grader, GradingResult
+from grader.models.check_result import CheckResult, NonScoredCheckResult, ScoredCheckResult
+from grader.utils.logger import setup_logger
+from grader.utils.virtual_environment import VirtualEnvironmentError
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 import web.constants as const
 
@@ -34,13 +34,13 @@ def run_grader(conn: Queue, run_id: str, project_root: str) -> None:
     config_path = os.getenv("CONFIG_PATH", "")
 
     try:
-        grader = Grader(run_id, project_root, config_path, log)
+        grader = Grader(logger=log, config_path=config_path)
     except (GraderError, VirtualEnvironmentError):
         conn.put((1, [], []))
         return
 
     try:
-        results = grader.grade()
+        results = grader.grade(project_root, run_id)
     except (GraderError, VirtualEnvironmentError) as exc:
         # TODO - Add exception message
         conn.put((1, [], [str(exc)]))
@@ -49,20 +49,20 @@ def run_grader(conn: Queue, run_id: str, project_root: str) -> None:
     conn.put((0, results, []))
 
 
-def convert_results(check_results: list[CheckResult]) -> pd.DataFrame:
+def convert_results(grading_result: GradingResult) -> pd.DataFrame:
     """
     Convert a list of CheckResult objects into a pandas DataFrame.
 
     :param check_results: The list of CheckResult objects to convert.
     :return: A pandas DataFrame representing the check results.
     """
-    results = pd.DataFrame([__convert_result(result) for result in check_results])
+    results = pd.DataFrame([__convert_result(result) for result in grading_result.results])
 
     results = pd.concat(
         [
             results,
             pd.DataFrame(
-                [{"name": "Total", "score": results["score"].sum(), "max_score": results["max_score"].sum()}]
+                [{"name": "Total", "score": grading_result.total_score, "max_score": grading_result.max_score}]
             ),
         ],
     ).reset_index(drop=True)
@@ -86,6 +86,7 @@ def __convert_result(check_result: CheckResult) -> dict:
 def generate_run_id() -> str:
     """
     Generate a unique run ID based on the current date and time.
+
     :return: A string representing the run ID.
     """
     now = datetime.datetime.now()
@@ -159,5 +160,5 @@ def remove_project(run_id: str) -> None:
         shutil.rmtree(project_dir)
 
 
-def get_information_from_checks(results: list[CheckResult]) -> dict[str, tuple[str, str]]:
-    return {result.name: (result.info, result.error) for result in results}
+def get_information_from_checks(results: GradingResult) -> dict[str, tuple[str, str]]:
+    return {result.name: (result.info, result.error) for result in results.results}

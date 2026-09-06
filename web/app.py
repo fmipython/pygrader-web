@@ -1,22 +1,20 @@
-from multiprocessing import Queue, Process
+from multiprocessing import Process, Queue
 
 import streamlit as st
 
 from web.utils import (
-    run_grader,
+    collect_log,
     convert_results,
     generate_run_id,
-    handle_upload,
-    collect_log,
-    remove_project,
     get_information_from_checks,
+    handle_upload,
+    remove_project,
+    run_grader,
 )
 
 
 def run_app() -> None:
-    """
-    Main logic for the streamlit app.
-    """
+    """Main logic for the streamlit app."""
     st.title("Pygrader Web Interface")
     st.write("Welcome to the Pygrader web application.")
 

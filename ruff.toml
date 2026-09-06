@@ -1,0 +1,11 @@
+line-length = 120
+
+[lint]
+extend-select = [
+    "I",    # isort (wrong-import-order)
+    "ARG",  # unused arguments
+    "D",    # pydocstyle (missing docstrings)
+]
+
+[lint.pydocstyle]
+convention = "pep257"
