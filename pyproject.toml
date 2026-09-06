@@ -1,24 +1,33 @@
 [project]
 name = "pygrader-web"
-version = "1.0.0"
+version = "1.1.0"
 description = "Web version of the pygrader"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "dotenv>=0.9.9",
-    "pygrader",
+    "pygrader @ git+https://github.com/fmipython/pygrader.git",
     "streamlit>=1.51.0",
 ]
 
 [dependency-groups]
 dev = [
-    "complexipy>=4.2.0",
-    "coverage>=7.11.0",
-    "flake8>=7.3.0",
-    "mypy>=1.18.2",
-    "pylint>=4.0.2",
+    "complexipy>=8.0.0",
+    "coverage>=7.16.0",
+    "mypy>=2.3.1",
+    "pylint>=4.0.8",
+    "ruff>=0.16.6",
 ]
 
 [tool.uv.sources]
-pygrader = { git = "https://github.com/fmipython/pygrader", rev = "v1.8.0" }
+pygrader = { git = "https://github.com/fmipython/pygrader", rev = "v1.13.2" }
 
+[tool.complexipy]
+paths = ["grader", "tests", "desktop", "web"]
+max-complexity-allowed = 15
+quiet = false
+sort = "asc"
+details = "low"
+
+[tool.complexipy.output]
+json = true

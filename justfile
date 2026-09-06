@@ -8,9 +8,9 @@ init:
 
 # Linting
 lint:
-    uv run pylint {{project_content}} --fail-under 9
+    uv run ruff check {{project_content}} --fix
+    uv run ruff format {{project_content}}
     uv run mypy {{project_content}} --ignore-missing-imports
-    uv run flake8 {{project_content}}
     uv run complexipy .
 
 # Tests
