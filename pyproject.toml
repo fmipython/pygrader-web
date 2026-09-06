@@ -20,7 +20,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-pygrader = { git = "https://github.com/fmipython/pygrader", rev = "v1.13.2" }
+pygrader = { git = "https://github.com/fmipython/pygrader", rev = "v2.0.0" }
 
 [tool.complexipy]
 paths = ["grader", "tests", "desktop", "web"]
